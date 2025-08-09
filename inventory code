@@ -1,0 +1,349 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#define true 0
+#define false 1
+
+struct product{
+    char id[10];
+    char name[20];
+    int quantity;
+    int numSold;
+    float price;
+    int discount;
+    float sales;
+};
+
+struct product product[100];
+int count = 0;
+FILE *f;
+
+// Function prototypes for missing functions
+void IDchecker(int start, int end);
+int checkID(char id[]);
+
+int writefile() 
+{
+    f = fopen("inventory.txt", "w");
+    if(f == NULL){
+        printf("Error opening file!\n");
+        return 1;
+    }
+    for(int i = 0; i < count; i++){
+        fputs(product[i].id, f);
+        fputs("\n",f);
+        fputs(product[i].name, f);
+        fputs("\n",f);
+        fprintf(f,"%d\n",product[i].quantity);
+        fprintf(f,"%d\n",product[i].numSold);
+        fprintf(f,"%.2f\n",product[i].price);
+        fprintf(f,"%d\n",product[i].discount);
+        fprintf(f,"%.2f\n",product[i].sales);
+    }
+    fclose(f);
+    return 0;
+}
+
+int readFile()
+{
+    int i = 0;
+    f = fopen("inventory.txt", "r");
+    if (f == NULL){
+        // file not found, treat as empty
+        return 0;
+    }
+    while (fgets(product[i].id, 10, f) != NULL) {
+        product[i].id[strcspn(product[i].id, "\n")] = 0;
+        fgets(product[i].name, 20, f);
+        product[i].name[strcspn(product[i].name, "\n")] = 0;
+        fscanf(f, "%d\n", &product[i].quantity);
+        fscanf(f, "%d\n", &product[i].numSold);
+        fscanf(f, "%f\n", &product[i].price);
+        fscanf(f, "%d\n", &product[i].discount);
+        fscanf(f, "%f\n", &product[i].sales);
+        i++;
+    }
+    fclose(f);
+    return i;
+}
+
+void addproduct(){
+    printf(" Enter the product ID:");
+    count = readFile();
+    if (count > 0){
+        IDchecker(0, count); //check if the ID already exists
+    } else {
+        printf("\n Enter product ID:");
+        fflush(stdin);
+        gets(product[count].id);
+    }
+    printf("\n product name:");
+    gets(product[count].name);
+    printf("\n product quantity:");
+    scanf("%d",&product[count].quantity);
+    printf("\n product price:");
+    scanf("%f",&product[count].price);
+    printf("\n product discount:");
+    scanf("%d",&product[count].discount);
+    product[count].numSold = 0;
+    product[count].sales = 0.0;
+    count++; //increment the count of products
+
+    writefile(); //write the new product to the file
+}
+
+void editproduct(){
+    char id[10];
+    int test;
+    int i;
+    int choice;
+    printf("Enter the product ID:");
+    fflush(stdin);
+    gets(id);
+    count = readFile();
+    test = checkID(id);
+    if(test == 0){
+        printf("product not found\n");
+    } 
+    else{
+        for (i = 0; i < count; i++){
+            if(strcmp(product[i].id, id) == 0){
+                printf("\n1. update product Id number ");
+                printf("\n2. update product name ");
+                printf("\n3. update product quantity ");
+                printf("\n4. update product price ");
+                printf("\n5. update product discount ");
+                fflush(stdin);
+                scanf("%d",&choice);
+
+                switch(choice){
+                    case 1:
+                        printf("Enter new product ID:");
+                        fflush(stdin);
+                        gets(product[i].id);
+                        break;
+                    case 2:
+                        printf("Enter new product name:");
+                        fflush(stdin);
+                        gets(product[i].name);
+                        break;
+                    case 3:
+                        printf("Enter new product quantity:");
+                        scanf("%d",&product[i].quantity);
+                        break;
+                    case 4:
+                        printf("Enter new product price:");
+                        scanf("%f",&product[i].price);
+                        break;
+                    case 5:
+                        printf("Enter new product discount:");
+                        scanf("%d",&product[i].discount);
+                        break;
+                }
+                writefile(); //write the updated product to the file
+                printf("product updated sucessfully\n");
+                return;
+            }
+        }
+        printf("product not found\n");
+    }
+}
+
+void deleteproduct(){
+    count = readFile();
+    char id[10];
+    int i, j;
+    int z = false;
+    printf("enter the product ID to delete:");
+    fflush(stdin);
+    gets(id);
+
+    for (i = 0; i < count; i++){
+        if (strcmp(product[i].id, id) == 0){
+            for (j = i; j < count - 1; j++){
+                product[j] = product[j + 1];
+            }
+            count--;
+            z = true;
+            break;
+        }
+    }
+    if (z == false){
+        printf("product id not found\n");
+    }
+    writefile();
+}
+
+void displayproduct(){
+    int i;
+    count = readFile();
+    if (count <= 0){
+        puts("Error reading file or no products\n");
+        return;
+    }
+    printf("\t\t\t\t\t========================\n");
+    printf("\t\t\t\t\t|  Inventory System    |\n");
+    printf("\t\t\t\t\t========================\n");
+    printf("_ _ _ _ _ _ _ _ __ _ _ _ __ __ _ _ _ _ _ _ _ _ _ _ _ _ _\n");
+    printf("S.N.|  NAME  |  ID  |  QUANTITY  |  PRICE  |  DISCOUNT  |  SALES  |\n");
+    printf("_ _ _ _ _ _ _ _ __ _ _ _ __ ____ _ _ _ _  __ _ _ _ _ _ _ _\n");
+
+    for (i = 0; i < count; i++){
+        printf("%d  %-10s %-8s %-10d %-10.2f %-10d %-10.2f\n", i+1, product[i].name, product[i].id, product[i].quantity, product[i].price, product[i].discount, product[i].sales);
+    }
+}
+
+void purchaseproduct(){
+    int quantity, i;
+    char id[10];
+    int z = false;
+    count = readFile();
+    printf("Enter the product ID to purchase:");
+    fflush(stdin);
+    gets(id);
+    for (i = 0; i < count; i++){
+        if (strcmp(product[i].id, id) == 0){
+            z = true;
+            printf("\n Item found containing the product ID\n");
+            printf("\n product name is %s\n", product[i].name);
+            printf("\n product price is %.2f\n", product[i].price);
+
+            printf(" Enter the quantity to purchase:");
+            fflush(stdin);
+            scanf("%d", &quantity);
+
+            if (quantity > product[i].quantity){
+                puts("\n Insufficient quantity available\n");
+                break;
+            }
+            float tempSale = product[i].sales;
+            product[i].numSold += quantity;
+            product[i].quantity -= quantity;
+            product[i].sales = quantity * product[i].price * (1 - product[i].discount / 100.0);
+            product[i].sales += tempSale;
+            writefile();
+            printf("Purchase successful!\n");
+            return;
+        }
+    }
+    if (z == false){
+        printf("product id not found\n");
+    }
+}
+
+void dis_highestSale(){
+    int high, i;
+    count = readFile();
+    if (count == 0) {
+        printf("No products available.\n");
+        return;
+    }
+    high = product[0].numSold;
+    for(i = 1; i < count; i++){
+        if(product[i].numSold > high){
+            high = product[i].numSold;
+        }
+    }
+    printf("product with highest sales is :\n");
+    for (i = 0; i < count; i++){
+        if (product[i].numSold == high)
+            printf("Name of the product is %s \nproduct ID is %s \nquantity left: %d \nprice is %.2f \ndiscount is %d \nsales is %.2f\n", product[i].name, product[i].id, product[i].quantity, product[i].price, product[i].discount, product[i].sales);
+    }
+}
+
+void dis_zeroQuantity(){
+    int i;
+    count = readFile();
+    printf("product with zero quantity is :\n");
+    for (i = 0; i < count; i++){
+        if (product[i].quantity == 0){
+            printf("Name of the product is %s \nproduct ID is %s  \nquantity left: %d \nprice is %.2f \ndiscount is %d \nsales is %.2f\n", product[i].name, product[i].id, product[i].quantity, product[i].price, product[i].discount, product[i].sales);
+        }
+    }
+}
+
+int checkID(char id[]){
+    int i;
+    for(i = 0; i < count; i++){
+        if(strcmp(product[i].id, id) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+void IDchecker(int start, int end){
+    char temp[10];
+    int found = 0;
+    printf("\n Enter product ID:");
+    fflush(stdin);
+    gets(temp);
+    for(int i = start; i < end; i++){
+        if(strcmp(product[i].id, temp) == 0){
+            found = 1;
+            break;
+        }
+    }
+    if(found){
+        printf("ID already exists. Please enter a unique ID.\n");
+        IDchecker(start, end);
+    } else {
+        strcpy(product[count].id, temp);
+    }
+}
+
+int main(){
+    int choice;
+    count = readFile();
+    if(count < 0){
+        printf("cannot locate file\n");
+    }
+    do{
+        printf("\n");
+        printf("\t\t\t\t========================\n");
+        printf("\t\t\t\t|  Inventory System    |\n");
+        printf("\t\t\t\t========================\n");
+
+        printf("\n\npress:");
+        printf("\n1. Input the product details");
+        printf("\n2. Edit the product");
+        printf("\n3. Delete the product");
+        printf("\n4. display all  the  existing product details");
+        printf("\n5. Make a purchase");
+        printf("\n6. Display the product record with highest sale");
+        printf("\n7. Display all the product with zero quantity");
+        printf("\n8. Exit the program");
+        printf("\n\nEnter your choice: ");
+        scanf("%d",&choice);
+        switch(choice){
+            case 1:
+                addproduct();
+                break;
+            case 2:
+                editproduct();
+                break;
+            case 3:
+                deleteproduct();
+                break;
+            case 4:
+                displayproduct();
+                break;
+            case 5:
+                purchaseproduct();
+                break;
+            case 6:
+                dis_highestSale();
+                break;
+            case 7:
+                dis_zeroQuantity();
+                break;
+            case 8:
+                printf("Exiting the program...\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+                break;
+        }
+    } while (choice != 8);
+    printf("thank you for using the inventory system\n");
+    return 0;
+}
